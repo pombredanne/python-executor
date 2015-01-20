@@ -1,7 +1,7 @@
 # Automated tests for the `executor' module.
 #
 # Author: Peter Odding <peter@peterodding.com>
-# Last Change: June 7, 2014
+# Last Change: October 18, 2014
 # URL: https://executor.readthedocs.org
 
 # Standard library modules.
@@ -32,10 +32,25 @@ class ExecutorTestCase(unittest.TestCase):
         self.assertTrue(execute('true'))
         self.assertFalse(execute('false', check=False))
         self.assertRaises(ExternalCommandFailed, execute, 'false')
+        try:
+            execute('bash', '-c', 'exit 42')
+            # Make sure the previous line raised an exception.
+            self.assertTrue(False)
+        except Exception as e:
+            # Make sure the expected type of exception was raised.
+            self.assertTrue(isinstance(e, ExternalCommandFailed))
+            # Make sure the exception has the expected properties.
+            self.assertEqual(e.command, "bash -c 'exit 42'")
+            self.assertEqual(e.returncode, 42)
 
     def test_subprocess_output(self):
-        self.assertEqual(execute('echo this is a test', capture=True), 'this is a test')
+        self.assertEqual(execute('echo', 'this is a test', capture=True), 'this is a test')
         self.assertEqual(execute('echo', '-e', r'line 1\nline 2', capture=True), 'line 1\nline 2\n')
+        # I don't know how to test for the effect of silent=True in a practical
+        # way without creating the largest test in this test suite :-). The
+        # least I can do is make sure the keyword argument is accepted and the
+        # code runs without exceptions in supported environments.
+        self.assertTrue(execute('echo', 'this is a test', silent=True))
 
     def test_subprocess_input(self):
         self.assertEqual(execute('tr', 'a-z', 'A-Z', input='test', capture=True), 'TEST')
@@ -70,5 +85,3 @@ class ExecutorTestCase(unittest.TestCase):
             self.assertEqual(execute('stat', '--format=%a', filename, sudo=True, capture=True), '600')
         finally:
             self.assertTrue(execute('rm', filename, sudo=True))
-
-# vim: ts=4 sw=4 et
