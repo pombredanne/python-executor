@@ -1,12 +1,27 @@
+sudo: true
 language: python
 python:
   - "2.6"
   - "2.7"
   - "3.4"
+  - "3.5"
+  - "3.6"
+  - "pypy"
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install --yes fakeroot openssh-server
 install:
-  - pip install coveralls
-  - python setup.py install
+  - pip install pip-accel
+  - pip-accel install coveralls
+  - pip-accel install --requirement=requirements.txt
+  - pip-accel install --requirement=requirements-checks.txt
+  - pip-accel install --requirement=requirements-tests.txt
+  - LC_ALL=C pip-accel install .
 script:
-  coverage run --source=executor setup.py test
+  - make check
+  - make test
 after_success:
-  coveralls
+  - coveralls
+branches:
+  except:
+    - /^[0-9]/
